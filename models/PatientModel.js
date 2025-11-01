@@ -17,7 +17,7 @@ const patientmodel=new mongoose.Schema({
         enum:["Male","Female","others"],
         default:"others"
     },
-Number:{
+phoneNumber:{
     type:String,
         minlength: [10, "Phone number must be at least 10 digits"],
         maxlength: [15, "Phone number must not exceed 15 digits"]

@@ -5,15 +5,6 @@ const Doctormodel=new mongoose.Schema({
      ref:"User",
      required:true
     },
-    spectialist:{
-        type:String,
-        require:true
-    },
-     address: String,
-    experience:{
-        type:Number,
-        required:true
-    }
 })
 
 const doctor=mongoose.model('doctor',Doctormodel);

@@ -1,15 +1,14 @@
-const express=require('express')
-const patientController = require('../controller/patientController')
-const isAuth = require('../middleware/authMiddleware')
-const roleMiddleware = require('../middleware/roleAuth')
+const express = require('express');
+const patientController = require('../controller/patientController');
+const isAuth = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleAuth');
 
-const patientRouter=express.Router()
+const patientRouter = express.Router();
 
-patientRouter.post("/",patientController.create)
-patientRouter.get("/get",isAuth,roleMiddleware ("patient","admin"), patientController.getall)
-patientRouter.get("/:userId",patientController.getone)
-patientRouter.delete("/:id",patientController.delete)
-patientRouter.put("/:id", isAuth ,roleMiddleware("admin","patient") ,patientController.update)
+patientRouter.post("/", isAuth, roleMiddleware("admin"), patientController.create);
+patientRouter.get("/", isAuth, roleMiddleware("patient", "admin"), patientController.getAll);
+patientRouter.get("/:id", isAuth, roleMiddleware("patient", "admin"), patientController.getOne);
+patientRouter.delete("/:id", isAuth, roleMiddleware("admin"), patientController.delete);
+patientRouter.put("/:id", isAuth, roleMiddleware("admin", "patient"), patientController.update);
 
-
-module.exports=patientRouter
+module.exports = patientRouter;

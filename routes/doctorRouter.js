@@ -1,16 +1,17 @@
-const experess=require('express')
+const express=require('express')
 const doctorController = require('../controller/doctorController')
 const isAuth = require('../middleware/authMiddleware')
 const roleMiddleware = require('../middleware/roleAuth')
 
-const doctorRouter=experess.Router()
+const doctorRouter=express.Router()
 
-doctorRouter.post("/",doctorController.createdr)
+doctorRouter.post("/", isAuth, roleMiddleware("admin"), doctorController.createDoctor)
+doctorRouter.get("/", isAuth, doctorController.getAllDoctors);
 // doctorRouter.get("/",doctorController.getall)
-doctorRouter.get("/:id", isAuth, roleMiddleware("doctor"), doctorController.getalldoctor);
+doctorRouter.get("/:id", isAuth, roleMiddleware("doctor"), doctorController.getDoctorById);
 
-doctorRouter.put("/:id",isAuth, roleMiddleware("doctor","admin")     ,doctorController.doctorupdater)
-doctorRouter.delete("/:id",doctorController.delete)
+doctorRouter.put("/:id",isAuth, roleMiddleware("doctor","admin")     ,doctorController.updateDoctor)
+doctorRouter.delete("/:id", isAuth, roleMiddleware("admin"), doctorController.deleteDoctor)
 
 
 module.exports=doctorRouter

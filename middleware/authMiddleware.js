@@ -13,7 +13,7 @@ const isAuth = async (req, res, next) => {
     const token = authHeader.split(" ")[1]
 
     
-    // 2️⃣ Verify token
+
     const verifiedToken = jwt.verify(token, process.env.JWT_SECRET_KEY)
 
     if (!verifiedToken) {

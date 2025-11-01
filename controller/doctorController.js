@@ -1,133 +1,135 @@
-
-const doctor = require('../models/Doctor')
-// const User = require('../models/UserModel')\
+const doctor = require('../models/Doctor');
+const DoctorProfile = require('../models/DoctorProfile'); // Import DoctorProfile model
+const User = require('../models/UserModel');
 require('dotenv').config();
 
-
 const doctorController = {
-    createdr: async (req, res) => {
-
+    createDoctor: async (req, res) => {
         try {
-            const { userid, spectialist, address, experience } = req.body
+            const { name, email, password } = req.body; // Removed specialization, address, experience
 
-            if (!userid || !spectialist || !address || !experience) {
-                return res.status(400).json({
-                    message: "enter the valid"
-                })
+            if (!name || !email || !password) {
+                return res.status(400).json({ message: "Please enter all required fields" });
             }
 
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({ message: "User with this email already exists" });
+            }
 
-            const createdoctor = await doctor.create({
-                user: userid,
-                spectialist,
-                address,
-                experience
-            })
+            const newUser = await User.create({ name, email, password, role: "doctor" });
 
+            const newDoctor = await doctor.create({
+                user: newUser._id,
+            });
+            console.log("New Doctor created:", newDoctor);
+
+            // Automatically create a DoctorProfile for the new doctor
+            await DoctorProfile.create({
+                doctor: newDoctor._id,
+                specialization: "", // Default or empty values
+                address: "",
+                experience: 0,
+                bio: "",
+                clinicAddress: "",
+                officeHours: "",
+                medicalLicense: "",
+            });
 
             res.status(201).json({
                 message: "Doctor created successfully",
-                doctor: createdoctor
+                doctor: {
+                    _id: newDoctor._id,
+                    name: newUser.name,
+                    email: newUser.email,
+                    role: newUser.role,
+                },
             });
-
-
-
         } catch (error) {
-            console.log("creation  error", error.message);
-            res.status(500).send("server error")
-
-
+            console.error("Error creating doctor:", error.message);
+            res.status(500).send("Server error");
         }
-
     },
 
+    getAllDoctors: async (req, res) => {
+        try {
+            const doctors = await doctor.find().populate("user", "name email role");
+            console.log("Doctors fetched from DB:", doctors);
+            res.status(200).json({ doctors });
+        } catch (error) {
+            console.error("Error fetching doctors:", error.message);
+            res.status(500).send("Server error");
+        }
+    },
 
-    // find
-    // getall:async (req,res) => {
-    //     try {
-    //         const Doctor=await doctor.find().populate("user")
-
-
-    //     res.status(201).json({Doctor})
-
-    //     } catch (error) {
-    //         console.log("doctor not found ",error.message);
-    //         res.status(500).send("server error")
-
-
-    //     }
-
-    // },
-
-    getalldoctor: async (req, res) => {
+    getDoctorById: async (req, res) => {
         try {
             const getdoctors = await doctor.findById(req.params.id).populate({
                 path: "user",
                 select: "name email role"
             });
 
-
             if (!getdoctors) {
                 return res.status(404).json({ message: "Doctor not found" });
             }
-            res.status(200).json(getdoctors)
+            res.status(200).json({ doctor: getdoctors }); // Wrap in doctor object
 
         } catch (error) {
-
             console.log(error.message);
             res.status(500).send("internal server error")
-
-
         }
     },
-    doctorupdater: async (req, res) => {
+    updateDoctor: async (req, res) => {
         try {
             const { id } = req.params;
-            const updates = req.body;
+            const { name, email } = req.body; // Only name and email for User model
 
-            const updatesd = await doctor.findByIdAndUpdate(id, updates, { new: true, runValidators: true })
-            if (!updatesd) {
-                return res.status(404).json({
-                    message: "not updated doctor"
-                })
+            const existingDoctor = await doctor.findById(id);
+            if (!existingDoctor) {
+                return res.status(404).json({ message: "Doctor not found" });
             }
+
+            // Update associated User model
+            const user = await User.findById(existingDoctor.user);
+            if (!user) {
+                return res.status(404).json({ message: "Associated user not found" });
+            }
+            user.name = name || user.name;
+            user.email = email || user.email;
+            await user.save();
+
+            // No update to Doctor model itself, as profile fields are now in DoctorProfile
+
+            const updatedDoctor = await doctor.findById(id).populate("user", "name email role");
+
             res.status(200).json({
                 message: "Doctor updated successfully",
-                doctor: updatesd
+                doctor: updatedDoctor
             });
-
 
         } catch (error) {
             console.error(error.message);
             res.status(500).send("internal server error")
-
         }
-
     },
-    delete: async (req, res) => {
+    deleteDoctor: async (req, res) => {
         try {
-            const { id } = req.params
-            const deletedr = await doctor.findByIdAndDelete(id)
-            if (!deletedr) {
-                return res.status(404).json({
-                    message: "doctor not found"
+            const { id } = req.params;
+            const deletedDoctor = await doctor.findByIdAndDelete(id);
 
-                })
-
-
+            if (!deletedDoctor) {
+                return res.status(404).json({ message: "Doctor not found" });
             }
-            res.status(200).send("successfull")
 
+            await User.findByIdAndDelete(deletedDoctor.user);
+            await DoctorProfile.findOneAndDelete({ doctor: deletedDoctor._id }); // Delete associated DoctorProfile
+
+            res.status(200).json({ message: "Doctor and associated user deleted successfully" });
         } catch (error) {
-            console.error(error.message);
-
-            req.status(500).send("internal server error")
-
-
+            console.error("Error deleting doctor:", error.message);
+            res.status(500).send("Internal server error");
         }
-
     }
-
 }
 
-module.exports = doctorController
+module.exports = doctorController;
